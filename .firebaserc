@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "be-linked-a7cdc"
+  },
+  "targets": {
+    "be-linked-a7cdc": {
+      "hosting": {
+        "betask-linked-facebook-test": [
+          "betask-linked-facebook-test"
+        ]
+      }
+    }
+  }
+}

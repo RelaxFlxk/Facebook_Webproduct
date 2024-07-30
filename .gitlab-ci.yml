@@ -1,0 +1,37 @@
+image: node:14-alpine
+
+before_script:
+  - npm i -g firebase-tools
+
+deploy-dev:
+  stage: deploy
+  environment:
+    name: development
+    url: https://dev-betask-loyalty.web.app
+  script:
+    - npm install
+    - npm run build
+    - firebase deploy --project betask-loyalty --only hosting:dev-betask-loyalty --token $FIREBASE_TOKEN
+  when: manual
+  only:
+    refs:
+      - master
+      - devops
+    # changes:
+    #   - src/**/*
+
+deploy-prod:
+  stage: deploy
+  environment:
+    name: production
+    url: https://betask-loyalty.web.app
+  script:
+    - npm install
+    - npm run build
+    - firebase deploy --project betask-loyalty --only hosting:betask-loyalty --token $FIREBASE_TOKEN
+  when: manual
+  only:
+    refs:
+      - release
+    # changes:
+    #   - src/**/*
