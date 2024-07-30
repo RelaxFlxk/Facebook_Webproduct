@@ -1,0 +1,16 @@
+@font-face {
+    font-family: Kanit;
+    src: url('/static/fonts/Kanit/Kanit-Regular.ttf');
+}
+@font-face {
+    font-family: Raleway;
+    src: url('/static/fonts/Raleway/static/Raleway-Regular.ttf');
+}
+@font-face {
+    font-family: RalewayMedium;
+    src: url('/static/fonts/Raleway/static/Raleway-Medium.ttf');
+}
+@font-face {
+    font-family: RalewayBold;
+    src: url('/static/fonts/Raleway/static/Raleway-Bold.ttf');
+}
