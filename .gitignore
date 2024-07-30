@@ -1,3 +1,8 @@
 node_modules
 dist
 .firebase
+src/assets/index.js
+src/components/index.js
+src/plugins/index.js
+src/store/index.js
+src/router/index.js
