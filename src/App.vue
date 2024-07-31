@@ -38,7 +38,7 @@ body {
   color: #1B437C;
 }
 .v-application--wrap {
-  background-color: #FAFAFA;
+  background-color: #043873;
 }
 .v-application, .v-application .text-h5, .v-application .text-h6  {
     font-family: Kanit !important;
