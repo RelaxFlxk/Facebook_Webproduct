@@ -19,15 +19,18 @@ import firebase from 'firebase'
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: 'AIzaSyDUBbXP6Ip6z0AUdREKZ-1IrC5t4XjGLhI',
-  authDomain: 'be-linked-a7cdc.firebaseapp.com',
-  projectId: 'be-linked-a7cdc',
-  storageBucket: 'be-linked-a7cdc.appspot.com',
-  messagingSenderId: '98104331104',
-  appId: '1:98104331104:web:387a171462a45c9719ec05'
+  apiKey: 'AIzaSyC_tZSHkiE5xkAwTfKhu3hFFOvybv8tUgY',
+  authDomain: 'api-intern-978ba.firebaseapp.com',
+  projectId: 'api-intern-978ba',
+  storageBucket: 'api-intern-978ba.appspot.com',
+  messagingSenderId: '357974285385',
+  appId: '1:357974285385:web:249fb55622540761eff398'
 }
-firebase.initializeApp(firebaseConfig)
 
+firebase.initializeApp(firebaseConfig)
+const auth = firebase.auth()
+
+export { auth }
 Vue.config.productionTip = false
 // import store from './store'
 // import Swal from 'sweetalert2'

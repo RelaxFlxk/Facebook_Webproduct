@@ -5,6 +5,7 @@
       <div align="center" @click="logOut()">
         <div class=" center magin-card card-social">
           <div class="bold-opacity">LOG OUT</div>
+          <span class="h1">HHHHH</span>
         </div>
       </div>
     </div>

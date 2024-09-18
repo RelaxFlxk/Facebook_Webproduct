@@ -1,7 +1,7 @@
 {
   "hosting": [
     {
-      "site": "betask-linked-facebook-test",
+      "site": "api-intern",
       "public": "dist",
       "headers": [
         {
@@ -20,6 +20,10 @@
             {
               "key": "Cache-Control",
               "value": "no-cache, no-store, must-revalidate"
+            },
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
             }
           ]
         }
