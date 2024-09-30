@@ -16,6 +16,7 @@ import * as VueGoogleMaps from 'vue2-google-maps'
 import VueRecaptcha from 'vue-recaptcha'
 import VueGtm from 'vue-gtm'
 import firebase from 'firebase'
+import 'firebase/auth'
 
 // Your web app's Firebase configuration
 const firebaseConfig = {

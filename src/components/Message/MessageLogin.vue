@@ -7,7 +7,10 @@
       <v-card-subtitle class="text-center">
         ลงชื่อเข้าใช้บัญชีของคุณ
       </v-card-subtitle>
-      <v-form ref="form" v-model="valid" lazy-validation @submit.prevent="login">
+      <v-alert v-if="errorMessage" type="error" dismissible>
+        {{ errorMessage }}
+      </v-alert>
+      <v-form ref="form" v-model="valid" lazy-validation>
         <v-text-field
           v-model="email"
           :rules="emailRules"
@@ -41,10 +44,6 @@
           </template>
         </v-text-field>
 
-        <v-alert v-if="errorMessage" type="error" dismissible>
-          {{ errorMessage }}
-        </v-alert>
-
         <v-btn type="submit" block color="#00276E" dark large class="mt-4 mb-2">
           เข้าสู่ระบบ
         </v-btn>
@@ -62,7 +61,7 @@
           block
           color="#FFFFFF"
           class="google-btn mb-3"
-          @click="loginWithGoogle"
+          @click="googleAuth()"
         >
           <img src="@/assets/download-icon-google+logo+new+icon-1320185797820629294_24.png" style="width: 20px; height: 20px; margin-right: 8px;" />
           ล็อกอินด้วย Google
@@ -102,15 +101,16 @@
 <script>
 import Vue from 'vue'
 import VueSession from 'vue-session'
-import firebase from 'firebase/app'
 import 'firebase/auth'
-import { auth } from '../../main'
+import firebase from 'firebase'
+import axios from 'axios'
 
 Vue.use(VueSession)
 
 export default {
   data () {
     return {
+      load: '',
       email: '',
       password: '',
       emailRules: [
@@ -125,97 +125,51 @@ export default {
       passwordErrors: [],
       errorMessage: '',
       valid: false,
-      loading: false
+      loading: false,
+      urlAPI: 'http://192.168.1.2:5001'
     }
   },
   methods: {
-    async login () {
-      if (this.$refs.form.validate()) {
-        this.loading = true
-        try {
-          const userCredential = await auth.signInWithEmailAndPassword(this.email, this.password)
-          await this.setUserData(userCredential.user)
-          this.$router.push('/message/test')
-        } catch (error) {
-          console.error('Login Error:', error)
-          this.errorMessage = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'
-        } finally {
-          this.loading = false
-        }
-      }
-    },
-    async loginWithGoogle () {
-      this.loading = true
-      const provider = new firebase.auth.GoogleAuthProvider()
-      try {
-        await auth.signInWithRedirect(provider)
-      } catch (error) {
-        console.error('Google Login Error:', error)
-        this.errorMessage = 'เกิดข้อผิดพลาดในการล็อกอินด้วย Google'
-        this.loading = false
-      }
-    },
-    async handleRedirectResult () {
-      try {
-        const result = await auth.getRedirectResult()
-        if (result.user) {
-          await this.setUserData(result.user)
-          this.$router.push('/message/test')
-        }
-      } catch (error) {
-        console.error('Redirect Result Error:', error)
-        this.errorMessage = 'เกิดข้อผิดพลาดในการล็อกอินด้วย Google'
-      } finally {
-        this.loading = false
-      }
-    },
-    setUserData (user) {
-      return new Promise((resolve) => {
-        const userData = {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL
-        }
-        this.$session.set('user', userData)
-        localStorage.setItem('user', JSON.stringify(userData))
-        resolve()
-      })
-    },
-    checkSessionOrStorage () {
-      const sessionUser = this.$session.get('user')
-      const storedUser = JSON.parse(localStorage.getItem('user'))
+    async googleAuth () {
+      this.$session.start()
 
-      if (sessionUser || storedUser) {
-        this.$router.push('/message/test')
-      }
-    },
-    clearError () {
-      this.errorMessage = ''
-    },
-    setupAuthStateListener () {
-      auth.onAuthStateChanged(async (user) => {
-        if (user) {
-          await this.setUserData(user)
-          this.$router.push('/message/test')
+      try {
+        const result = await firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider())
+        const user = result.user
+        const uId = user.uid
+        const email = user.email
+        const displayName = user.displayName
+        const accessToken = result.credential.accessToken
+
+        const response = await axios.get(`${this.urlAPI}/getMembers/${uId}`)
+        const memberData = response.data
+
+        // Debugging output
+        console.log('Member data:', memberData)
+
+        // ตรวจสอบ memberData ว่าเป็น array หรือไม่
+        if (Array.isArray(memberData) && memberData.length > 0) {
+          // เลือก member ที่มีข้อมูลที่ไม่เป็น null
+          const validMember = memberData.find(member => member.userName !== null && member.birthday !== null)
+
+          if (validMember) {
+            console.log('Redirecting to /Message/test')
+            this.$router.push({ path: '/Message/test', query: { uId, email, accessToken } })
+          } else {
+            console.log('Redirecting to /Message/UserForm')
+            this.$router.push({ path: '/Message/UserForm', query: { uId, email, displayName, accessToken } })
+          }
+        } else {
+          // ถ้า memberData เป็น array ว่าง
+          console.log('Redirecting to /Message/UserForm')
+          this.$router.push({ path: '/Message/UserForm', query: { uId, email, displayName, accessToken } })
         }
-      })
+      } catch (error) {
+        console.error('Error during Google login or fetching member data:', error)
+        this.errorMessage = 'เกิดข้อผิดพลาดในการล็อกอิน'
+      }
     }
-  },
-  created () {
-    this.checkSessionOrStorage()
-    this.setupAuthStateListener()
-  },
-  mounted () {
-    this.handleRedirectResult()
-  },
-  watch: {
-    email () {
-      this.clearError()
-    },
-    password () {
-      this.clearError()
-    }
+
   }
 }
 </script>
