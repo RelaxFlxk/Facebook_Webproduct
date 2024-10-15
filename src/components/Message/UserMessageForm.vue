@@ -58,6 +58,23 @@
           ยืนยัน
         </v-btn>
       </v-form>
+      <v-snackbar
+        v-model="snackbar"
+        :timeout="timeout"
+        :color="snackbarColor"
+        top
+      >
+        {{ snackbarText }}
+        <template v-slot:action="{ attrs }">
+          <v-btn
+            text
+            v-bind="attrs"
+            @click="snackbar = false"
+          >
+            ปิด
+          </v-btn>
+        </template>
+      </v-snackbar>
     </v-card>
   </div>
 </template>
@@ -73,10 +90,14 @@ export default {
       birthday: '',
       userId: null,
       userInfoGoogle: null,
-      urlAPI: 'http://192.168.1.2:5001',
+      urlAPI: 'http://localhost:5001',
       loading: false,
       userNameErrors: [],
-      birthdayErrors: []
+      birthdayErrors: [],
+      snackbar: false,
+      snackbarText: '',
+      snackbarColor: '',
+      timeout: 3000
     }
   },
   mounted () {
@@ -143,10 +164,25 @@ export default {
       try {
         const res = await axios.post(`${this.urlAPI}/postMembers`, data)
         console.log('User data inserted successfully:', res)
-        this.$router.push('/Message/test')
+
+        // แสดง snackbar แทน alert
+        this.showSnackbar('กรอกข้อมูลเสร็จสิ้น ระบบกำลังพาท่านไปยังหน้า Dashboard', 'success')
+
+        // หน่วงเวลาสักครู่ก่อนที่จะ redirect (เช่น 3 วินาที)
+        setTimeout(() => {
+          this.$router.push('/Message/test')
+        }, 3000)
       } catch (error) {
         console.error('Error inserting user data:', error)
+        this.showSnackbar('เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง', 'error')
+      } finally {
+        this.loading = false
       }
+    },
+    showSnackbar (text, color = 'success') {
+      this.snackbarText = text
+      this.snackbarColor = color
+      this.snackbar = true
     },
     getGoogleUserInfo () {
       this.userInfoGoogle = localStorage.getItem('wakimbooking_google_userinfo')

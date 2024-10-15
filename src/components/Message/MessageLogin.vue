@@ -7,10 +7,14 @@
       <v-card-subtitle class="text-center">
         ลงชื่อเข้าใช้บัญชีของคุณ
       </v-card-subtitle>
-      <v-alert v-if="errorMessage" type="error" dismissible>
-        {{ errorMessage }}
+
+      <!-- แสดงแหล่งที่มาของ URL -->
+      <v-alert v-if="urlSource" type="info" class="mb-4">
+        คุณมาจาก: {{ urlSource }}
       </v-alert>
-      <v-form ref="form" v-model="valid" lazy-validation>
+
+      <!-- แสดงฟอร์มล็อกอินเมื่อไม่ได้มาจาก Facebook หรือเข้า URL โดยตรง -->
+      <v-form v-if="!showFacebookButton" ref="form" v-model="valid" lazy-validation>
         <v-text-field
           v-model="email"
           :rules="emailRules"
@@ -50,13 +54,27 @@
         <div class="text-right">
           <a href="#" color="#1E2772">ลืมรหัสผ่าน?</a>
         </div>
+      </v-form>
+      <div class="d-flex align-center my-4">
+        <v-divider></v-divider>
+        <span class="mx-2 grey--text text--darken-1">หรือ</span>
+        <v-divider></v-divider>
+      </div>
+      <!-- แสดงปุ่ม Facebook เมื่อมีการส่ง URL มาจาก Facebook -->
+      <v-btn
+        v-if="showFacebookButton"
+        block
+        style="border-radius: 4px; font-size: 14px; height: 40px; background-color: rgb(26, 119, 242); color: rgb(255, 255, 255); display: flex; align-items: center; justify-content: center;"
+        dark
+        class="mb-3"
+        @click="facebookAuth"
+      >
+        <v-icon left style="width: 20px; height: 20px; margin-right: 12px;">mdi-facebook</v-icon>
+        ล็อกอินด้วย Facebook
+      </v-btn>
 
-        <div class="d-flex align-center my-4">
-          <v-divider></v-divider>
-          <span class="mx-2 grey--text text--darken-1">หรือ</span>
-          <v-divider></v-divider>
-        </div>
-
+      <!-- แสดงปุ่มล็อกอินอื่นๆ เมื่อไม่ได้มาจาก Facebook หรือเข้า URL โดยตรง -->
+      <template v-if="!showFacebookButton">
         <v-btn
           block
           color="#FFFFFF"
@@ -72,6 +90,7 @@
           style="border-radius: 4px; font-size: 14px; height: 40px; background-color: rgb(26, 119, 242); color: rgb(255, 255, 255); display: flex; align-items: center; justify-content: center;"
           dark
           class="mb-3"
+          @click="facebookAuth"
         >
           <v-icon left style="width: 20px; height: 20px; margin-right: 12px;">mdi-facebook</v-icon>
           ล็อกอินด้วย Facebook
@@ -79,9 +98,8 @@
 
         <v-btn
           block
-          color="#06C755"
-          dark
-          style="display: flex; align-items: center; justify-content: center; height: 40px; border-radius: 4px;"
+          style="display: flex; align-items: center; justify-content: center; height: 40px; border-radius: 4px; background-color: #00B900; color: white;"
+          @click="lineAuth"
         >
           <img
             src="@/assets/LineVector.png"
@@ -89,11 +107,11 @@
           />
           ล็อกอินด้วย LINE
         </v-btn>
+      </template>
 
-        <div class="text-center mt-6">
-          คุณได้ลงทะเบียนแล้วหรือยัง? <a href="#" color="#1E2772">ลงทะเบียน!</a>
-        </div>
-      </v-form>
+      <div class="text-center mt-6">
+        คุณได้ลงทะเบียนแล้วหรือยัง? <a href="#" color="#1E2772">ลงทะเบียน!</a>
+      </div>
     </v-card>
   </div>
 </template>
@@ -126,50 +144,257 @@ export default {
       errorMessage: '',
       valid: false,
       loading: false,
-      urlAPI: 'http://192.168.1.2:5001'
+      urlAPI: 'http://localhost:5001',
+      showFacebookButton: false,
+      urlSource: ''
     }
   },
+  created () {
+    this.checkLoginStatus()
+    this.checkUrlSource()
+  },
   methods: {
-    async googleAuth () {
+    checkUrlSource () {
+      const urlParams = new URLSearchParams(window.location.search)
+      const source = urlParams.get('source')
+
+      if (source) {
+        this.urlSource = source
+        if (source.toLowerCase() === 'facebook') {
+          this.showFacebookButton = true
+        } else {
+          this.showFacebookButton = false
+        }
+      } else {
+        this.showFacebookButton = false
+        this.urlSource = ''
+      }
+    },
+    async checkLoginStatus () {
+      try {
+        const user = firebase.auth().currentUser
+        if (user) {
+          const uId = user.uid
+          const response = await axios.get(`${this.urlAPI}/getMembers/${uId}`)
+          const memberData = response.data
+
+          if (Array.isArray(memberData) && memberData.length > 0) {
+            const validMember = memberData.find(member => member.userName && member.birthday)
+            if (validMember) {
+              // เก็บข้อมูลผู้ใช้ใน localStorage
+              localStorage.setItem('user', JSON.stringify({
+                uId: user.uid,
+                email: user.email,
+                loginWith: this.getLoginProvider(user.providerData[0].providerId)
+              }))
+
+              // นำทางไปยังหน้า /Message/test พร้อมกับ query parameters
+              this.$router.push({
+                path: '/Message/test',
+                query: {
+                  uId: user.uid,
+                  email: user.email,
+                  loginWith: this.getLoginProvider(user.providerData[0].providerId)
+                }
+              })
+            } else {
+              // ถ้าไม่มีข้อมูลที่สมบูรณ์ ให้นำทางไปยังหน้ากรอกข้อมูลเพิ่มเติม
+              this.$router.push({
+                path: '/Message/UserForm',
+                query: {
+                  uId: user.uid,
+                  email: user.email,
+                  loginWith: this.getLoginProvider(user.providerData[0].providerId)
+                }
+              })
+            }
+          } else {
+            // ถ้าไม่มีข้อมูลสมาชิก ให้นำทางไปยังหน้ากรอกข้อมูลเพิ่มเติม
+            this.$router.push({
+              path: '/Message/UserForm',
+              query: {
+                uId: user.uid,
+                email: user.email,
+                loginWith: this.getLoginProvider(user.providerData[0].providerId)
+              }
+            })
+          }
+        }
+      } catch (error) {
+        console.error('เกิดข้อผิดพลาดในการตรวจสอบสถานะการล็อกอิน:', error)
+        this.errorMessage = 'เกิดข้อผิดพลาดในการตรวจสอบสถานะการล็อกอิน'
+      }
+    },
+
+    getLoginProvider (providerId) {
+      switch (providerId) {
+        case 'google.com':
+          return 'Google'
+        case 'facebook.com':
+          return 'Facebook'
+        case 'line.me':
+          return 'Line'
+        default:
+          return 'Unknown'
+      }
+    },
+
+    async handleAuth (provider, loginWith) {
       this.$session.start()
 
       try {
-        const result = await firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider())
+        let authProvider
+        switch (provider) {
+          case 'google':
+            authProvider = new firebase.auth.GoogleAuthProvider()
+            break
+          case 'facebook':
+            authProvider = new firebase.auth.FacebookAuthProvider()
+            // เพิ่มขอบเขตการเข้าถึงที่ต้องการ
+            authProvider.addScope('email')
+            authProvider.addScope('public_profile')
+            break
+          case 'line':
+            // สำหรับ Line อาจต้องใช้วิธีการเฉพาะ ตัวอย่างนี้เป็นเพียงตัวอย่างเท่านั้น
+            authProvider = new firebase.auth.OAuthProvider('line.me')
+            break
+          default:
+            throw new Error('ไม่รองรับผู้ให้บริการนี้')
+        }
+
+        const result = await firebase.auth().signInWithPopup(authProvider)
         const user = result.user
         const uId = user.uid
         const email = user.email
         const displayName = user.displayName
         const accessToken = result.credential.accessToken
 
+        // เพิ่มการบันทึกข้อมูลลงใน localStorage
+        localStorage.setItem('user', JSON.stringify({
+          uId,
+          email,
+          displayName,
+          accessToken,
+          loginWith
+        }))
+
         const response = await axios.get(`${this.urlAPI}/getMembers/${uId}`)
         const memberData = response.data
 
-        // Debugging output
         console.log('Member data:', memberData)
 
-        // ตรวจสอบ memberData ว่าเป็น array หรือไม่
+        const commonParams = { uId, email, accessToken, loginWith }
+
         if (Array.isArray(memberData) && memberData.length > 0) {
-          // เลือก member ที่มีข้อมูลที่ไม่เป็น null
           const validMember = memberData.find(member => member.userName !== null && member.birthday !== null)
 
           if (validMember) {
             console.log('Redirecting to /Message/test')
-            this.$router.push({ path: '/Message/test', query: { uId, email, accessToken } })
+            this.$router.push({ path: '/Message/test', query: commonParams })
           } else {
             console.log('Redirecting to /Message/UserForm')
-            this.$router.push({ path: '/Message/UserForm', query: { uId, email, displayName, accessToken } })
+            this.$router.push({ path: '/Message/UserForm', query: { ...commonParams, displayName } })
           }
         } else {
-          // ถ้า memberData เป็น array ว่าง
           console.log('Redirecting to /Message/UserForm')
-          this.$router.push({ path: '/Message/UserForm', query: { uId, email, displayName, accessToken } })
+          this.$router.push({ path: '/Message/UserForm', query: { ...commonParams, displayName } })
         }
       } catch (error) {
-        console.error('Error during Google login or fetching member data:', error)
+        console.error(`Error during ${loginWith} login or fetching member data:`, error)
         this.errorMessage = 'เกิดข้อผิดพลาดในการล็อกอิน'
       }
-    }
+    },
 
+    async googleAuth () {
+      const provider = new firebase.auth.GoogleAuthProvider()
+      provider.addScope('profile')
+      provider.addScope('email')
+
+      try {
+        const result = await firebase.auth().signInWithPopup(provider)
+        console.log('Google sign-in result:', result)
+
+        if (result.user) {
+          const user = result.user
+          const uId = user.uid
+          const email = user.email
+          const displayName = user.displayName
+          const photoURL = user.photoURL || ''
+          const accessToken = result.credential.accessToken
+
+          // บันทึกข้อมูลลงใน localStorage
+          localStorage.setItem('userInfoGoogle', JSON.stringify({
+            uId,
+            email,
+            displayName,
+            photoURL,
+            accessToken,
+            loginWith: 'Google'
+          }))
+          await this.checkMemberDataAndRedirect(uId, email, accessToken, 'Google', displayName, photoURL)
+        }
+      } catch (error) {
+        console.error('เกิดข้อผิดพลาดในการล็อกอิน Google:', error)
+        this.errorMessage = 'เกิดข้อผิดพลาดในการล็อกอิน Google'
+      }
+    },
+
+    // เพิ่มฟังก์ชัน checkMemberDataAndRedirect ที่นี่
+    async checkMemberDataAndRedirect (uId, email, accessToken, loginWith, displayName, photoURL) {
+      try {
+        const response = await axios.get(`${this.urlAPI}/getMembers/${uId}`)
+        const memberData = response.data
+
+        console.log('Member data:', memberData) // เพิ่ม log เพื่อตรวจสอบข้อมูลที่ได้รับ
+
+        const commonParams = { uId, email, accessToken, loginWith, photoURL }
+
+        if (Array.isArray(memberData) && memberData.length > 0) {
+          const validMember = memberData.find(member => member.userName && member.birthday)
+
+          if (validMember) {
+            console.log('Valid member found, redirecting to /Message/test')
+            this.navigateTo('/Message/test', commonParams)
+          } else {
+            console.log('No valid member found, redirecting to /Message/UserForm')
+            this.navigateTo('/Message/UserForm', { ...commonParams, displayName })
+          }
+        } else {
+          console.log('No member data found, redirecting to /Message/UserForm')
+          this.navigateTo('/Message/UserForm', { ...commonParams, displayName })
+        }
+      } catch (error) {
+        console.error('เกิดข้อผิดพลาดในการตรวจสอบข้อมูลสมาชิก:', error)
+        this.errorMessage = 'เกิดข้อผิดพลาดในการตรวจสอบข้อมูลสมาชิก'
+      }
+    },
+
+    navigateTo (path, query) {
+      if (this.$route.path !== path) {
+        this.$router.push({ path, query }).catch(err => {
+          if (err.name !== 'NavigationDuplicated') {
+            throw err
+          }
+        })
+      }
+    },
+
+    facebookAuth () {
+      this.handleAuth('facebook', 'Facebook')
+    },
+
+    lineAuth () {
+      this.handleAuth('line', 'Line')
+    },
+
+    // เพิ่มเมธอดใหม่สำหรับการล็อกเอาท์
+    logout () {
+      localStorage.removeItem('user')
+      // ทำการล็อกเอาท์จาก Firebase ด้วย
+      firebase.auth().signOut()
+      // นำผู้ใช้กลับไปยังหน้าล็อกอิน
+      this.$router.push('/login')
+    }
   }
 }
 </script>
