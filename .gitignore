@@ -17,6 +17,7 @@ src/components/Rating/index.js
 src/components/TCG/index.js
 src/components/Welcome/index.js
 src/router/index.js
+
 node_modules
 node_modules
 node_modules

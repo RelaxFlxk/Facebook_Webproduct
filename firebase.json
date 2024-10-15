@@ -1,7 +1,7 @@
 {
   "hosting": [
     {
-      "site": "api-intern",
+      "site": "api-intern-978ba",
       "public": "dist",
       "headers": [
         {

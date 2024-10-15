@@ -141,26 +141,23 @@ export default {
       if (this.userNameErrors.length || this.birthdayErrors.length) {
         return
       }
-
-      const uId = localStorage.getItem('wakimbooking_user_id')
-      const email = localStorage.getItem('wakimbooking_user_email')
-      const displayName = localStorage.getItem('wakimbooking_google_displayName')
-      const accessToken = localStorage.getItem('wakimbooking_google_access_token')
-
+      const provider = JSON.parse(localStorage.getItem('userInfoGoogle'))
+      console.log('providerLog', provider)
       const data = {
-        name: displayName,
+        name: provider.displayName,
         userName: this.userName,
         birthday: this.birthday,
-        connectId: uId,
-        email: email,
-        uId: uId,
-        token: accessToken,
+        connectId: provider.uId,
+        email: provider.email,
+        uId: provider.uId,
+        token: provider.accessToken,
         loginWith: 'Google',
         RECORD_STATUS: 'N',
         CREATE_DATE: new Date(),
         LAST_DATE: new Date()
       }
       this.loading = true
+      console.log('dataLog', data)
       try {
         const res = await axios.post(`${this.urlAPI}/postMembers`, data)
         console.log('User data inserted successfully:', res)
