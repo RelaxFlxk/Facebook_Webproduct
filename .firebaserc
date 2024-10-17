@@ -1,5 +1,9 @@
 {
   "projects": {
-    "default": "api-intern"
-  }
+    "default": "api-intern-978ba",
+    "s": "api-intern-978ba"
+  },
+  "targets": {},
+  "etags": {},
+  "dataconnectEmulatorConfig": {}
 }

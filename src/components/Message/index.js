@@ -4,6 +4,7 @@ import FacebookSubscript from './FacebookSubscript.vue'
 import MessageLogin from './MessageLogin.vue'
 import test from './test.vue'
 import Policy from './Policy.vue'
+import UsersForm from './UserMessageForm.vue'
 
 export default {
   MessageStart,
@@ -11,5 +12,6 @@ export default {
   FacebookSubscript,
   MessageLogin,
   test,
-  Policy
+  Policy,
+  UsersForm
 }
