@@ -33,6 +33,7 @@
     "read-excel-file": "^5.0.0",
     "sweetalert2": "^11.0.16",
     "text-mask-addons": "^3.8.0",
+    "v-calendar": "^2.4.2",
     "v-mask": "^2.2.3",
     "vue": "^2.6.0",
     "vue-chartjs": "^3.5.1",

@@ -38,9 +38,9 @@ body {
   color: #1B437C;
 }
 .v-application--wrap {
-  background-color: #f1f1f1;
+  background-color: #f5f5f5;
 }
-.v-application, .v-application .text-h5, .v-application .text-h6  {
+.v-application, .v-application .text-h5, .v-application .text-h6,.v-application .text-h4,.v-application .subtitle-1  {
     font-family: Kanit !important;
 }
 .v-dialog {

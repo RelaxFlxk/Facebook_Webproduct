@@ -5,6 +5,8 @@ import MessageLogin from './MessageLogin.vue'
 import test from './test.vue'
 import Policy from './Policy.vue'
 import UsersForm from './UserMessageForm.vue'
+import rating from './RatingUser.vue'
+import Profile from './Profile.vue'
 
 export default {
   MessageStart,
@@ -13,5 +15,7 @@ export default {
   MessageLogin,
   test,
   Policy,
-  UsersForm
+  UsersForm,
+  rating,
+  Profile
 }

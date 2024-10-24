@@ -187,37 +187,15 @@ export default {
                 email: user.email,
                 loginWith: this.getLoginProvider(user.providerData[0].providerId)
               }))
-
-              // นำทางไปยังหน้า /Message/test พร้อมกับ query parameters
-              this.$router.push({
-                path: '/Message/test',
-                query: {
-                  uId: user.uid,
-                  email: user.email,
-                  loginWith: this.getLoginProvider(user.providerData[0].providerId)
-                }
-              })
+              // นำทางไปยังหน้า /Message/test
+              this.$router.push({ path: '/Message/test' })
             } else {
               // ถ้าไม่มีข้อมูลที่สมบูรณ์ ให้นำทางไปยังหน้ากรอกข้อมูลเพิ่มเติม
-              this.$router.push({
-                path: '/Message/UserForm',
-                query: {
-                  uId: user.uid,
-                  email: user.email,
-                  loginWith: this.getLoginProvider(user.providerData[0].providerId)
-                }
-              })
+              this.$router.push({ path: '/Message/UserForm', query: { uId: user.uid, email: user.email } })
             }
           } else {
             // ถ้าไม่มีข้อมูลสมาชิก ให้นำทางไปยังหน้ากรอกข้อมูลเพิ่มเติม
-            this.$router.push({
-              path: '/Message/UserForm',
-              query: {
-                uId: user.uid,
-                email: user.email,
-                loginWith: this.getLoginProvider(user.providerData[0].providerId)
-              }
-            })
+            this.$router.push({ path: '/Message/UserForm', query: { uId: user.uid, email: user.email } })
           }
         }
       } catch (error) {
@@ -225,7 +203,6 @@ export default {
         this.errorMessage = 'เกิดข้อผิดพลาดในการตรวจสอบสถานะการล็อกอิน'
       }
     },
-
     getLoginProvider (providerId) {
       switch (providerId) {
         case 'google.com':
@@ -238,10 +215,8 @@ export default {
           return 'Unknown'
       }
     },
-
     async handleAuth (provider, loginWith) {
       this.$session.start()
-
       try {
         let authProvider
         switch (provider) {
@@ -268,6 +243,7 @@ export default {
         const email = user.email
         const displayName = user.displayName
         const accessToken = result.credential.accessToken
+        const shopId = 'U63f4a14fe78b8bf8414c1d197e432954'
 
         // เพิ่มการบันทึกข้อมูลลงใน localStorage
         localStorage.setItem('user', JSON.stringify({
@@ -275,15 +251,14 @@ export default {
           email,
           displayName,
           accessToken,
-          loginWith
+          loginWith,
+          shopId
         }))
 
         const response = await axios.get(`${this.urlAPI}/getMembers/${uId}`)
         const memberData = response.data
 
-        console.log('Member data:', memberData)
-
-        const commonParams = { uId, email, accessToken, loginWith }
+        const commonParams = { shopId, uId, loginWith }
 
         if (Array.isArray(memberData) && memberData.length > 0) {
           const validMember = memberData.find(member => member.userName !== null && member.birthday !== null)
@@ -304,7 +279,6 @@ export default {
         this.errorMessage = 'เกิดข้อผิดพลาดในการล็อกอิน'
       }
     },
-
     async googleAuth () {
       const provider = new firebase.auth.GoogleAuthProvider()
       provider.addScope('profile')
@@ -321,6 +295,7 @@ export default {
           const displayName = user.displayName
           const photoURL = user.photoURL || ''
           const accessToken = result.credential.accessToken
+          const shopId = 'U63f4a14fe78b8bf8414c1d197e432954' // เพิ่มค่า shopId ตรงนี้
 
           // บันทึกข้อมูลลงใน localStorage
           localStorage.setItem('userInfoGoogle', JSON.stringify({
@@ -329,25 +304,34 @@ export default {
             displayName,
             photoURL,
             accessToken,
-            loginWith: 'Google'
+            loginWith: 'Google',
+            shopId // บันทึก shopId ใน localStorage
           }))
-          await this.checkMemberDataAndRedirect(uId, email, accessToken, 'Google', displayName, photoURL)
+
+          // เพิ่ม shopId ใน query parameters เมื่อ redirect
+          this.$router.push({
+            path: '/Message/test',
+            query: {
+              shopId,
+              uId,
+              loginWith: 'Google' // เพิ่มค่า shopId ที่นี่
+            }
+          })
         }
       } catch (error) {
         console.error('เกิดข้อผิดพลาดในการล็อกอิน Google:', error)
         this.errorMessage = 'เกิดข้อผิดพลาดในการล็อกอิน Google'
       }
     },
-
     // เพิ่มฟังก์ชัน checkMemberDataAndRedirect ที่นี่
-    async checkMemberDataAndRedirect (uId, email, accessToken, loginWith, displayName, photoURL) {
+    async checkMemberDataAndRedirect (uId, loginWith, displayName) {
       try {
         const response = await axios.get(`${this.urlAPI}/getMembers/${uId}`)
         const memberData = response.data
 
         console.log('Member data:', memberData) // เพิ่ม log เพื่อตรวจสอบข้อมูลที่ได้รับ
 
-        const commonParams = { uId, email, accessToken, loginWith, photoURL }
+        const commonParams = { uId, loginWith }
 
         if (Array.isArray(memberData) && memberData.length > 0) {
           const validMember = memberData.find(member => member.userName && member.birthday)
