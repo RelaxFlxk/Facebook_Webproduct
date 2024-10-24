@@ -313,31 +313,6 @@ export default {
         this.isLoading = false
       }
     },
-    async getUserInfo () {
-      const storedUser = localStorage.getItem('userInfoGoogle')
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser)
-        this.user = {
-          displayName: parsedUser.displayName || 'User',
-          email: parsedUser.email,
-          photoURL: parsedUser.photoURL
-        }
-        this.userPhotoURL = parsedUser.photoURL || 'https://via.placeholder.com/42'
-      } else {
-        const user = auth.currentUser
-        if (user) {
-          this.user = {
-            displayName: user.displayName || 'User',
-            email: user.email,
-            photoURL: user.photoURL
-          }
-          this.userPhotoURL = user.photoURL || 'https://via.placeholder.com/42'
-          localStorage.setItem('userInfoGoogle', JSON.stringify(this.user))
-        } else {
-          this.navigateToLogin()
-        }
-      }
-    },
     handleImageError (item) {
     // ตรวจสอบว่า item เป็นอ็อบเจ็กต์ก่อน
       if (typeof item === 'object' && item !== null) {
@@ -429,15 +404,7 @@ export default {
         }
       })
     },
-    navigateToLogin () {
-      if (this.$route.path !== '/MessageLogin') {
-        this.$router.push('/MessageLogin').catch(err => {
-          if (err.name !== 'NavigationDuplicated') {
-            throw err
-          }
-        })
-      }
-    },
+
     getValidPhotoURL (url) {
       if (url && url.startsWith('http')) {
         return url
@@ -476,22 +443,6 @@ export default {
       } else {
       // จัดการ action อื่น ๆ ที่ไม่ใช่ My Rating
         console.log(`Action clicked: ${action.title}`)
-      }
-    },
-    async signOut () {
-      try {
-        await auth.signOut()
-        localStorage.removeItem('userInfoGoogle') // ลบ key ใน localStorage 'userInfoGoogle'
-        sessionStorage.clear()
-        this.user = {
-          displayName: '',
-          email: '',
-          photoURL: ''
-        }
-        this.userPhotoURL = ''
-        this.navigateToLogin()
-      } catch (error) {
-        console.error('Error during sign out:', error)
       }
     },
     navigateToLogin () {

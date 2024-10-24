@@ -143,7 +143,10 @@ export default {
       passwordErrors: [],
       errorMessage: '',
       valid: false,
-      loading: false
+      loading: false,
+      urlAPI: 'http://localhost:5005',
+      showFacebookButton: false,
+      urlSource: ''
     }
   },
   created () {
@@ -151,94 +154,230 @@ export default {
     this.checkUrlSource()
   },
   methods: {
-    async login () {
-      if (this.$refs.form.validate()) {
-        this.loading = true
-        try {
-          const userCredential = await auth.signInWithEmailAndPassword(this.email, this.password)
-          await this.setUserData(userCredential.user)
-          this.$router.push('/message/test')
-        } catch (error) {
-          console.error('Login Error:', error)
-          this.errorMessage = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'
-        } finally {
-          this.loading = false
+    checkUrlSource () {
+      const urlParams = new URLSearchParams(window.location.search)
+      const source = urlParams.get('source')
+
+      if (source) {
+        this.urlSource = source
+        if (source.toLowerCase() === 'facebook') {
+          this.showFacebookButton = true
+        } else {
+          this.showFacebookButton = false
         }
+      } else {
+        this.showFacebookButton = false
+        this.urlSource = ''
       }
     },
-    async loginWithGoogle () {
-      this.loading = true
-      const provider = new firebase.auth.GoogleAuthProvider()
+    async checkLoginStatus () {
       try {
-        await auth.signInWithRedirect(provider)
+        const user = firebase.auth().currentUser
+        if (user) {
+          const uId = user.uid
+          const response = await axios.get(`${this.urlAPI}/getMembers/${uId}`)
+          const memberData = response.data
+
+          if (Array.isArray(memberData) && memberData.length > 0) {
+            const validMember = memberData.find(member => member.userName && member.birthday)
+            if (validMember) {
+              // เก็บข้อมูลผู้ใช้ใน localStorage
+              localStorage.setItem('user', JSON.stringify({
+                uId: user.uid,
+                email: user.email,
+                loginWith: this.getLoginProvider(user.providerData[0].providerId)
+              }))
+              // นำทางไปยังหน้า /Message/test
+              this.$router.push({ path: '/Message/test' })
+            } else {
+              // ถ้าไม่มีข้อมูลที่สมบูรณ์ ให้นำทางไปยังหน้ากรอกข้อมูลเพิ่มเติม
+              this.$router.push({ path: '/Message/UserForm', query: { uId: user.uid, email: user.email } })
+            }
+          } else {
+            // ถ้าไม่มีข้อมูลสมาชิก ให้นำทางไปยังหน้ากรอกข้อมูลเพิ่มเติม
+            this.$router.push({ path: '/Message/UserForm', query: { uId: user.uid, email: user.email } })
+          }
+        }
       } catch (error) {
-        console.error('Google Login Error:', error)
-        this.errorMessage = 'เกิดข้อผิดพลาดในการล็อกอินด้วย Google'
-        this.loading = false
+        console.error('เกิดข้อผิดพลาดในการตรวจสอบสถานะการล็อกอิน:', error)
+        this.errorMessage = 'เกิดข้อผิดพลาดในการตรวจสอบสถานะการล็อกอิน'
       }
     },
-    async handleRedirectResult () {
+    getLoginProvider (providerId) {
+      switch (providerId) {
+        case 'google.com':
+          return 'Google'
+        case 'facebook.com':
+          return 'Facebook'
+        case 'line.me':
+          return 'Line'
+        default:
+          return 'Unknown'
+      }
+    },
+    async handleAuth (provider, loginWith) {
+      this.$session.start()
+      try {
+        let authProvider
+        switch (provider) {
+          case 'google':
+            authProvider = new firebase.auth.GoogleAuthProvider()
+            break
+          case 'facebook':
+            authProvider = new firebase.auth.FacebookAuthProvider()
+            // เพิ่มขอบเขตการเข้าถึงที่ต้องการ
+            authProvider.addScope('email')
+            authProvider.addScope('public_profile')
+            break
+          case 'line':
+            // สำหรับ Line อาจต้องใช้วิธีการเฉพาะ ตัวอย่างนี้เป็นเพียงตัวอย่างเท่านั้น
+            authProvider = new firebase.auth.OAuthProvider('line.me')
+            break
+          default:
+            throw new Error('ไม่รองรับผู้ให้บริการนี้')
+        }
+
+        const result = await firebase.auth().signInWithPopup(authProvider)
+        const user = result.user
+        const uId = user.uid
+        const email = user.email
+        const displayName = user.displayName
+        const accessToken = result.credential.accessToken
+        const shopId = 'U63f4a14fe78b8bf8414c1d197e432954'
+
+        // เพิ่มการบันทึกข้อมูลลงใน localStorage
+        localStorage.setItem('user', JSON.stringify({
+          uId,
+          email,
+          displayName,
+          accessToken,
+          loginWith,
+          shopId
+        }))
+
+        const response = await axios.get(`${this.urlAPI}/getMembers/${uId}`)
+        const memberData = response.data
+
+        const commonParams = { shopId, uId, loginWith }
+
+        if (Array.isArray(memberData) && memberData.length > 0) {
+          const validMember = memberData.find(member => member.userName !== null && member.birthday !== null)
+
+          if (validMember) {
+            console.log('Redirecting to /Message/test')
+            this.$router.push({ path: '/Message/test', query: commonParams })
+          } else {
+            console.log('Redirecting to /Message/UserForm')
+            this.$router.push({ path: '/Message/UserForm', query: { ...commonParams, displayName } })
+          }
+        } else {
+          console.log('Redirecting to /Message/UserForm')
+          this.$router.push({ path: '/Message/UserForm', query: { ...commonParams, displayName } })
+        }
+      } catch (error) {
+        console.error(`Error during ${loginWith} login or fetching member data:`, error)
+        this.errorMessage = 'เกิดข้อผิดพลาดในการล็อกอิน'
+      }
+    },
+    async googleAuth () {
+      const provider = new firebase.auth.GoogleAuthProvider()
+      provider.addScope('profile')
+      provider.addScope('email')
+
       try {
         const result = await firebase.auth().signInWithPopup(provider)
         console.log('Google sign-in result:', result)
 
         if (result.user) {
-          await this.setUserData(result.user)
-          this.$router.push('/message/test')
+          const user = result.user
+          const uId = user.uid
+          const email = user.email
+          const displayName = user.displayName
+          const photoURL = user.photoURL || ''
+          const accessToken = result.credential.accessToken
+          const shopId = 'U63f4a14fe78b8bf8414c1d197e432954' // เพิ่มค่า shopId ตรงนี้
+
+          // บันทึกข้อมูลลงใน localStorage
+          localStorage.setItem('userInfoGoogle', JSON.stringify({
+            uId,
+            email,
+            displayName,
+            photoURL,
+            accessToken,
+            loginWith: 'Google',
+            shopId // บันทึก shopId ใน localStorage
+          }))
+
+          // เพิ่ม shopId ใน query parameters เมื่อ redirect
+          this.$router.push({
+            path: '/Message/test',
+            query: {
+              shopId,
+              uId,
+              loginWith: 'Google' // เพิ่มค่า shopId ที่นี่
+            }
+          })
         }
       } catch (error) {
-        console.error('Redirect Result Error:', error)
-        this.errorMessage = 'เกิดข้อผิดพลาดในการล็อกอินด้วย Google'
-      } finally {
-        this.loading = false
+        console.error('เกิดข้อผิดพลาดในการล็อกอิน Google:', error)
+        this.errorMessage = 'เกิดข้อผิดพลาดในการล็อกอิน Google'
       }
     },
-    setUserData (user) {
-      return new Promise((resolve) => {
-        const userData = {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL
-        }
-        this.$session.set('user', userData)
-        localStorage.setItem('user', JSON.stringify(userData))
-        resolve()
-      })
-    },
-    checkSessionOrStorage () {
-      const sessionUser = this.$session.get('user')
-      const storedUser = JSON.parse(localStorage.getItem('user'))
+    // เพิ่มฟังก์ชัน checkMemberDataAndRedirect ที่นี่
+    async checkMemberDataAndRedirect (uId, loginWith, displayName) {
+      try {
+        const response = await axios.get(`${this.urlAPI}/getMembers/${uId}`)
+        const memberData = response.data
 
-      if (sessionUser || storedUser) {
-        this.$router.push('/message/test')
+        console.log('Member data:', memberData) // เพิ่ม log เพื่อตรวจสอบข้อมูลที่ได้รับ
+
+        const commonParams = { uId, loginWith }
+
+        if (Array.isArray(memberData) && memberData.length > 0) {
+          const validMember = memberData.find(member => member.userName && member.birthday)
+
+          if (validMember) {
+            console.log('Valid member found, redirecting to /Message/test')
+            this.navigateTo('/Message/test', commonParams)
+          } else {
+            console.log('No valid member found, redirecting to /Message/UserForm')
+            this.navigateTo('/Message/UserForm', { ...commonParams, displayName })
+          }
+        } else {
+          console.log('No member data found, redirecting to /Message/UserForm')
+          this.navigateTo('/Message/UserForm', { ...commonParams, displayName })
+        }
+      } catch (error) {
+        console.error('เกิดข้อผิดพลาดในการตรวจสอบข้อมูลสมาชิก:', error)
+        this.errorMessage = 'เกิดข้อผิดพลาดในการตรวจสอบข้อมูลสมาชิก'
       }
     },
-    clearError () {
-      this.errorMessage = ''
+
+    navigateTo (path, query) {
+      if (this.$route.path !== path) {
+        this.$router.push({ path, query }).catch(err => {
+          if (err.name !== 'NavigationDuplicated') {
+            throw err
+          }
+        })
+      }
     },
-    setupAuthStateListener () {
-      auth.onAuthStateChanged(async (user) => {
-        if (user) {
-          await this.setUserData(user)
-          this.$router.push('/message/test')
-        }
-      })
-    }
-  },
-  created () {
-    this.checkSessionOrStorage()
-    this.setupAuthStateListener()
-  },
-  mounted () {
-    this.handleRedirectResult()
-  },
-  watch: {
-    email () {
-      this.clearError()
+
+    facebookAuth () {
+      this.handleAuth('facebook', 'Facebook')
     },
-    password () {
-      this.clearError()
+
+    lineAuth () {
+      this.handleAuth('line', 'Line')
+    },
+
+    // เพิ่มเมธอดใหม่สำหรับการล็อกเอาท์
+    logout () {
+      localStorage.removeItem('user')
+      // ทำการล็อกเอาท์จาก Firebase ด้วย
+      firebase.auth().signOut()
+      // นำผู้ใช้กลับไปยังหน้าล็อกอิน
+      this.$router.push('/login')
     }
   }
 }
