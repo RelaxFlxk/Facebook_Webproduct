@@ -394,6 +394,76 @@ export default {
         console.error('Error fetching bookings:', error)
       }
     },
+    getUserInfo () {
+      return new Promise((resolve) => {
+        // ตรวจสอบข้อมูลใน localStorage ก่อน
+        const storedUser = localStorage.getItem('userInfoGoogle')
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser)
+          this.user = {
+            displayName: parsedUser.displayName || 'User',
+            email: parsedUser.email,
+            photoURL: parsedUser.photoURL
+          }
+          this.userPhotoURL = this.getValidPhotoURL(parsedUser.photoURL)
+          console.log('User data from localStorage:', this.user)
+          resolve()
+        } else {
+          // ถ้าไม่มีข้อมูลใน localStorage ให้ใช้ auth state
+          auth.onAuthStateChanged((user) => {
+            if (user) {
+              console.log('User data from Firebase:', user)
+              this.user = {
+                displayName: user.displayName || 'User',
+                email: user.email,
+                photoURL: user.photoURL
+              }
+              this.userPhotoURL = this.getValidPhotoURL(user.photoURL)
+              console.log('Updated user object:', this.user)
+              localStorage.setItem('userInfoGoogle', JSON.stringify(this.user))
+            } else {
+              this.navigateToLogin()
+            }
+            resolve()
+          })
+        }
+      })
+    },
+    navigateToLogin () {
+      if (this.$route.path !== '/MessageLogin') {
+        this.$router.push('/MessageLogin').catch(err => {
+          if (err.name !== 'NavigationDuplicated') {
+            throw err
+          }
+        })
+      }
+    },
+    getValidPhotoURL (url) {
+      if (url && url.startsWith('http')) {
+        return url
+      } else if (url && url.startsWith('//')) {
+        return 'https:' + url
+      } else {
+        return 'https://via.placeholder.com/42'
+      }
+    },
+    async signOut () {
+      try {
+        await auth.signOut()
+        localStorage.removeItem('userInfoGoogle') // เปลี่ยนจาก 'user' เป็น 'userInfoGoogle'
+        sessionStorage.clear()
+        this.user = {
+          displayName: '',
+          email: '',
+          photoURL: ''
+        }
+        this.userPhotoURL = ''
+        this.navigateToLogin()
+      } catch (error) {
+        console.error('Error during sign out:', error)
+      }
+    },
+    // New method to check if there is a booking for a specific date
     hasBooking (date) {
       // ตรวจสอบว่าในวันนั้นมีการจองหรือไม่
       return this.calendarEvents.some(event => event.start === date)
@@ -441,6 +511,10 @@ export default {
 .app-bar {
   background: linear-gradient(90deg, #043873 0%, #0765b0 100%) !important;
   color: #ffffff !important;
+}
+.text-right {
+  text-align: right;
+  margin-right: 10px; /* ปรับระยะห่างจากขอบขวาตามที่ต้องการ */
 }
 
 .text-right {
