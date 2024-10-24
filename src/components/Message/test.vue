@@ -17,13 +17,13 @@
       </v-overlay>
 
     <v-app-bar  flat class="app-bar" dark>
-      <v-toolbar-title class="text-h8 font-weight-bold">
+      <v-toolbar-title class="text-button font-weight-bold">
         <span style="color: #FBBC05;">WAKIM</span><span>BOOKING</span>
       </v-toolbar-title>
       <v-spacer></v-spacer>
-      <!-- <div class="text-right" style="margin-right: 18px;">
-        <div class="text-h10 mb-1"> {{ user.displayName }}</div>
-      </div> -->
+      <div class="text-right" style="margin-right: 10px;">
+        <div class="text-subtitle-2 font-weight-medium"> {{ user.displayName }}</div>
+      </div>
       <!-- ปรับการแสดง avatar พร้อม badge -->
       <v-badge
         overlap
@@ -31,7 +31,6 @@
         dot
         offset-x="12"
         offset-y="40"
-        bordered
       >
         <v-avatar size="42">
           <v-img :src="userPhotoURL" alt="User Profile" @error="userPhotoURL = 'https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png?20150327203541'"></v-img>
@@ -50,12 +49,12 @@
           <v-list-item>
             <v-list-item-content>
               <v-list-item-title>
-                <v-icon left>mdi-account</v-icon>
-                {{ user.displayName }}
+                <v-icon left style="color: #011f4b;">mdi-account</v-icon>
+               <span style="color: #011f4b;" class="text-no-wrap font-weight-medium"> {{ user.displayName }}  </span>
               </v-list-item-title>
               <v-list-item-subtitle>
                 <v-icon left>mdi-email</v-icon>
-                {{ user.email }}
+                <span class="text-no-wrap font-weight-medium">{{ user.email }}</span>
               </v-list-item-subtitle>
             </v-list-item-content>
           </v-list-item>
@@ -64,7 +63,7 @@
             <v-list-item-icon>
               <v-icon class="red--text">mdi-logout</v-icon>
             </v-list-item-icon>
-            <v-list-item-title class="red--text">ออกจากระบบ</v-list-item-title>
+            <v-list-item-title class="red--text font-weight-medium">ออกจากระบบ</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-card>
@@ -73,31 +72,31 @@
       <v-container fluid>
         <v-fade-transition>
           <div v-if="!isLoading">
-            <v-card-text class="text-h4 mb-8 mt-4 h2 font-weight-bold" style="color: #303030;">ข้อมูลการจอง</v-card-text>
+            <v-card-text class="text-h5 mb-8 mt-4 font-weight-bold" style="color: #333333;">ข้อมูลการจองคิวนัดหมาย</v-card-text>
             <v-row>
               <v-col v-for="stat in statistics" :key="stat.title" cols="12" sm="6" md="4" lg="3">
-                <v-card outlined class="rounded-lg" height="100">
+                <v-card outlined class="rounded-lg elevation-1" height="100" > <!-- เพิ่ม class elevation-2 -->
                   <v-card-title class="d-flex align-center">
-                    <v-icon left color="#043873" class="mr-2">{{ stat.icon }}</v-icon>
-                    <span class="subtitle-1 font-weight-bold" style="color: #043873;">{{ stat.title }}</span>
+                    <v-icon left color="#043873">{{ stat.icon }}</v-icon>
+                    <span class="subtitle-1 font-weight-medium" style="color: #043873;">{{ stat.title }}</span>
                   </v-card-title>
-                  <v-card-text class="text-center pt-0">
-                    <div class="text-h6 font-weight-bold">{{ stat.value }}</div>
+                  <v-card-text class="text-center pt-0 ">
+                    <div class="text-h6 font-weight-bold" style="color: #333333">{{ stat.value }}</div>
                   </v-card-text>
                 </v-card>
               </v-col>
             </v-row>
             <!--DATA--TABLE-->
             <!-- Booking History Table -->
-            <v-card outlined class="rounded-lg mt-4">
+            <v-card outlined class="rounded-lg elevation-1 mt-4">
               <v-card-title class="d-flex align-center py-2">
-                <v-icon left color="#043873" class="mr-2">mdi-calendar-clock</v-icon>
-                <span class="subtitle-1 font-weight-bold" style="color: #043873;">ประวัติการจองคิว</span>
+                <v-icon left color="#043873" class="mr-2 ">mdi-calendar-clock</v-icon>
+                <span class="subtitle-1 font-weight-medium" style="color: #043873;">ประวัติการจองคิว</span>
               </v-card-title>
               <v-data-table
                 :headers="bookingHeaders"
                 :items="bookings"
-                class="elevation-1"
+                class="elevation-1 text-body-2"
                 dense
                 :items-per-page="5"
               >
@@ -107,16 +106,16 @@
                     :color="getStatusColor(item.statusBt)"
                     :text-color="getTextColor(item.statusBt)"
                   >
-                  {{ item.statusBt || 'Null' }}
+                  <span class="text-body-2">{{ item.statusBt || 'Null' }}</span>
                   </v-chip>
                 </template>
               </v-data-table>
             </v-card>
 
-            <v-card outlined class="rounded-lg mt-4">
+            <v-card outlined class="rounded-lg elevation-1  mt-4">
               <v-card-title class="d-flex align-center">
                 <v-icon left color="#043873">mdi-calendar</v-icon>
-                <span class="subtitle-1 font-weight-bold" style="color: #043873;" > ปฏิทินการจองคิว </span>
+                <span class="subtitle-1 font-weight-medium" style="color: #043873;" > ปฏิทินการจองคิว </span>
               </v-card-title>
               <BookingCalendar />
             </v-card>
@@ -148,7 +147,7 @@ export default {
     return {
       userPhotoURL: 'https://via.placeholder.com/42',
       urlAPI: 'http://localhost:5005',
-      userId: 'U9bc765fb4c3dd68fed8c409009cb5f32',
+      userId: 'U8b3fd01caa9faa45189b0567eb452041',
       shopId: 'U63f4a14fe78b8bf8414c1d197e432954',
       isLoading: true,
       totalPrice: null,

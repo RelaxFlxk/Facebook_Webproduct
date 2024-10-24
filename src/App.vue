@@ -40,7 +40,7 @@ body {
 .v-application--wrap {
   background-color: #f5f5f5;
 }
-.v-application, .v-application .text-h5, .v-application .text-h6,.v-application .text-h4,.v-application .subtitle-1  {
+.v-application, .v-application .text-h5, .v-application .text-h6,.v-application .text-h4,.v-application .subtitle-1,.v-application .tetxt-subtitle-2,.v-application .text-button,.v-application .text-caption,.v-application .text-body-1,.v-application .text-body-2{
     font-family: Kanit !important;
 }
 .v-dialog {

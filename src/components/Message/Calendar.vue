@@ -97,27 +97,32 @@ export default {
 
       this.calendarEvents = this.bookingData.map(booking => {
         const eventDate = new Date(booking.dueDateDay) // Convert dueDateDay to Date object
+        if (isNaN(eventDate.getTime())) {
+          console.error('Invalid date format:', booking.dueDateDay)
+          return null
+        }
         return {
           name: booking.memberName,
-          start: eventDate, // Use Date object directly
-          end: eventDate, // Use Date object directly
+          start: eventDate, // ใช้ Date object โดยตรง
+          end: eventDate,
           time: booking.timeText,
           status: booking.statusBt,
           color: this.getStatusColor(booking.statusBt),
           timed: false,
-          id: `${booking.id}-${eventDate.toISOString().slice(0, 10)}`, // Create a unique ID
-          uniqueKey: `${booking.id}-${eventDate.toISOString().slice(0, 10)}`, // Create a unique key
+          id: `${booking.id}-${eventDate.toISOString().slice(0, 10)}`, // สร้าง unique ID
+          uniqueKey: `${booking.id}-${eventDate.toISOString().slice(0, 10)}`,
           ...booking
         }
-      })
+      }).filter(event => event !== null) // กรอง null event ออก
     },
     getEventColor (event) {
       return event.color || 'blue'
     },
     viewDayEvents ({ date }) {
-      this.selectedEventDate = date
+      const eventDate = new Date(date) // ตรวจสอบว่า date เป็น Date object หรือไม่
+      this.selectedEventDate = eventDate
       this.selectedDateEvents = this.calendarEvents.filter(event =>
-        event.start.toISOString().slice(0, 10) === date.toISOString().slice(0, 10)
+        event.start instanceof Date && event.start.toISOString().slice(0, 10) === eventDate.toISOString().slice(0, 10)
       )
       this.eventDialog = this.selectedDateEvents.length > 0
     },

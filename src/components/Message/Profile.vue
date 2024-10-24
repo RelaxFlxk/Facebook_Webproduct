@@ -2,12 +2,12 @@
   <v-app>
     <v-main>
       <v-app-bar flat class="app-bar" dark>
-        <v-toolbar-title class="text-h6 font-weight-bold">
-          <span style="color: #FBBC05;">[ WAKIM</span><span>BOOKING ]</span>
+        <v-toolbar-title class="text-button font-weight-bold">
+          <span style="color: #FBBC05;">WAKIM</span><span>BOOKING</span>
         </v-toolbar-title>
         <v-spacer></v-spacer>
-        <div class="text-right" style="margin-right: 16px;">
-          <div class="text-h7 mb-1"> {{ user.displayName }}</div>
+        <div class="text-right" style="margin-right: 10px;">
+          <div class="text-subtitle-2 font-weight-medium"> {{ user.displayName }}</div>
         </div>
         <v-badge
         overlap
@@ -15,11 +15,9 @@
         dot
         offset-x="12"
         offset-y="40"
-        bordered
       >
         <v-avatar size="42">
           <v-img :src="userPhotoURL" alt="User Profile" @error="userPhotoURL = 'https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png?20150327203541'"></v-img>
-
         </v-avatar>
       </v-badge>
         <v-btn icon @click="showProfileMenu = !showProfileMenu">
@@ -27,18 +25,18 @@
         </v-btn>
       </v-app-bar>
 
-      <div class="menu" v-if="showProfileMenu === true" :close-on-content-click="false">
+      <div class="menu " v-if="showProfileMenu === true" :close-on-content-click="false">
         <v-card>
           <v-list>
             <v-list-item>
               <v-list-item-content>
                 <v-list-item-title>
                   <v-icon left>mdi-account</v-icon>
-                  {{ user.displayName }}
+                  <span>{{ user.displayName }}</span>
                 </v-list-item-title>
                 <v-list-item-subtitle>
                   <v-icon left>mdi-email</v-icon>
-                  {{ user.email }}
+                  <span>{{ user.email }}</span>
                 </v-list-item-subtitle>
               </v-list-item-content>
             </v-list-item>
@@ -61,39 +59,48 @@
             </v-btn>
           </v-col>
           <v-col>
-            <v-card-text class="mb-5 mt-4 h2 font-weight-bold" style="color: #303030;">โปรไฟล์</v-card-text>
+            <v-card-text class="text-h5 mb-4 mt-4 h2 font-weight-bold" style="color: #333333;">โปรไฟล์</v-card-text>
           </v-col>
         </v-row>
         <v-row justify="center" class="mt-8">
-          <!-- Card สำหรับแสดงข้อมูลโปรไฟล์ -->
-          <v-card class="mx-auto" outlined max-width="1000" max-height="600" style="padding: 40px; border-radius: 10px;">
-            <v-card-title class="text-h5 justify-center">
+          <v-card
+            class="mx-auto elevation-3"
+            outlined
+            max-width="800"
+            style="padding: 40px; border-radius: 16px; background-color: #f9f9f9;"
+          >
+            <v-skeleton-loader v-if="isLoading" class="mx-auto" type="card" height="300" />
+            <v-card-title class="text-h5 justify-center" v-else>
               <v-img
                 :src="user.photoURL"
-                max-width="100"
-                max-height="100"
-                class="mr-3 mb-8 rounded-circle"
+                max-width="120"
+                max-height="120"
+                class="mr-3 mb-4 rounded-circle"
                 contain
                 @error="handleImageError1"
               ></v-img>
             </v-card-title>
-            <v-card-text>
+            <v-card-text v-if="!isLoading">
               <v-form>
                 <v-text-field
                   v-model="user.displayName"
                   label="Display Name"
                   disabled
                   outlined
-                  style="margin-bottom: 20px;"
+                  style="margin-bottom: 16px;"
                   prepend-icon="mdi-account"
+                  :rules="[(v) => !!v || 'Display Name is required']"
+                  color="#0765b0"
                 ></v-text-field>
                 <v-text-field
                   v-model="user.email"
                   label="Email"
                   disabled
                   outlined
-                  style="margin-bottom: 20px;"
+                  style="margin-bottom: 16px;"
                   prepend-icon="mdi-email"
+                  :rules="[(v) => !!v || 'Email is required']"
+                  color="#0765b0"
                 ></v-text-field>
               </v-form>
             </v-card-text>
@@ -106,7 +113,6 @@
 
 <script>
 import { auth } from '@/main'
-// import axios from 'axios'
 
 export default {
   data () {
@@ -178,16 +184,6 @@ export default {
     handleImageError1 () {
       this.user.photoURL = 'https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png?20150327203541' // URL ของรูปภาพสำรอง
     },
-    handleImageError (item) {
-    // ตรวจสอบว่า item เป็นอ็อบเจ็กต์ก่อน
-      if (typeof item === 'object' && item !== null) {
-        item.pictureUrl = 'https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png?20150327203541' // URL ของรูปภาพสำรอง
-      } else {
-        console.error('Expected item to be an object, but got:', item)
-        // คุณอาจต้องการจัดการกับกรณีนี้ เช่น:
-        // item = {}; // สร้างอ็อบเจ็กต์ใหม่ถ้าจำเป็น
-      }
-    },
     async signOut () {
       try {
         await auth.signOut()
@@ -226,7 +222,6 @@ export default {
 .text-right {
   text-align: right;
   margin-right: 10px;
-  /* ปรับระยะห่างจากขอบขวาตามที่ต้องการ */
 }
 
 .bottom-nav {
