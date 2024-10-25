@@ -68,7 +68,7 @@ export default {
       // สมมุติว่า URL จะมีลักษณะประมาณนี้: http://localhost:8080/Message/rating?shopId=xxx
       const queryParams = this.$route.query // ดึง query parameters
       const shopId = queryParams.shopId // shopId
-      const userId = 'U8b3fd01caa9faa45189b0567eb452041' // กำหนด userId ที่ต้องการ
+      const userId = 'U2371420ef553e603ba835ab2e3a09d35' // กำหนด userId ที่ต้องการ
       this.isLoading = true
       try {
         const response = await axios.get(`${this.urlAPI}/rating/getByShopUser`, {

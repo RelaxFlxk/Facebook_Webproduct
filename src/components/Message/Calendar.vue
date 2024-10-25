@@ -1,90 +1,110 @@
 <template>
-    <div class="calendar-wrapper">
-      <v-row class="mb-4">
-        <v-col cols="12" sm="6" md="4">
-          <v-menu
-            v-model="dateMenu"
-            :close-on-content-click="false"
-            transition="scale-transition"
-            offset-y
-            max-width="290px"
-            min-width="auto"
-          >
-            <template v-slot:activator="{ on, attrs }">
-              <v-text-field
-                v-model="selectedDate"
-                label="เลือกเดือน"
-                readonly
-                v-bind="attrs"
-                v-on="on"
-              ></v-text-field>
-            </template>
-            <v-date-picker
+  <div class="calendar-wrapper">
+    <v-row class="mb-4">
+      <v-col cols="12" sm="6" md="4">
+        <v-menu
+          v-model="dateMenu"
+          :close-on-content-click="false"
+          transition="scale-transition"
+          offset-y
+          max-width="290px"
+          min-width="auto"
+        >
+          <template v-slot:activator="{ on, attrs }">
+            <v-text-field
               v-model="selectedDate"
-              type="month"
-              @input="dateMenu = false"
-              @change="fetchMonthData"
-            ></v-date-picker>
-          </v-menu>
-        </v-col>
-      </v-row>
+              label="เลือกวันที่"
+              readonly
+              v-bind="attrs"
+              v-on="on"
+            ></v-text-field>
+          </template>
+          <v-date-picker
+            v-model="selectedDate"
+            type="month"
+            @input="dateMenu = false; fetchMonthData()"
+          ></v-date-picker>
+        </v-menu>
+      </v-col>
+    </v-row>
 
-      <v-sheet height="600">
-        <v-calendar
+    <v-sheet height="600">
+      <v-calendar
         ref="calendar"
         v-model="selectedDate"
         :events="calendarEvents"
         :event-color="getEventColor"
         type="month"
-        @click:date="viewDayEvents"
+        @click:event="showEvent"
         :key="calendarEvents.map(event => event.uniqueKey).join('-')"
-        ></v-calendar>
-      </v-sheet>
-    </div>
-  </template>
+      ></v-calendar>
+    </v-sheet>
+
+    <v-dialog v-model="dialog" max-width="600px">
+      <v-card>
+        <v-card-title class="headline">Event Details</v-card-title>
+        <v-card-text>
+          <v-list>
+            <v-list-item v-for="(item, index) in dataCalendar" :key="index">
+              <v-list-item-content>
+                <v-list-item-title>{{ item.name }}</v-list-item-title>
+                <v-list-item-subtitle>
+                  {{ item.licenseNo }} - {{ item.tel }}
+                </v-list-item-subtitle>
+              </v-list-item-content>
+            </v-list-item>
+          </v-list>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn text @click="dialog = false">Close</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </div>
+</template>
 
 <script>
 import axios from 'axios'
+import moment from 'moment'
 
 export default {
-  name: 'BookingCalendar',
   data () {
     return {
-      dateMenu: false,
+      today: new Date().toISOString().slice(0, 10),
       selectedDate: new Date().toISOString().slice(0, 10),
+      dateMenu: false,
+      bookingData: [],
       calendarEvents: [],
-      urlAPI: 'http://localhost:5005',
-      userId: 'U9bc765fb4c3dd68fed8c409009cb5f32',
-      selectedEventDate: null,
-      selectedDateEvents: [],
-      eventDialog: false
+      dialog: false,
+      dataCalendar: [],
+      urlAPI: 'http://localhost:5005', // กำหนด URL API ของคุณ
+      userId: 'U8b3fd01caa9faa45189b0567eb452041', // ระบุ user ID
+      type: 'month' // กำหนดประเภทปฏิทิน
     }
   },
   methods: {
     async fetchMonthData () {
       try {
-        const userId = this.userId
         const queryParams = this.$route.query
         const shopId = queryParams.shopId
 
-        // แยกปีและเดือนจาก selectedDate
         const selectedYear = new Date(this.selectedDate).getFullYear()
-        const selectedMonth = new Date(this.selectedDate).getMonth() + 1 // เพิ่ม 1 เพราะ getMonth() คืนค่า 0-11
+        const selectedMonth = new Date(this.selectedDate).getMonth() + 1 // เพิ่ม 1
+        const selectedDay = new Date(this.selectedDate).getDate() // ใช้ getDate เพื่อรับวันที่จริง
 
         const response = await axios.get(`${this.urlAPI}/Booking/get/calendar`, {
           params: {
             shopId: shopId,
-            userId: userId,
+            userId: this.userId,
             year: selectedYear,
-            month: selectedMonth
+            month: selectedMonth,
+            day: selectedDay
           }
         })
 
-        // ตรวจสอบการตอบกลับจาก API
-        console.log('Response from API:', response.data) // ตรวจสอบข้อมูลที่ได้รับ
-
-        this.bookingData = response.data || [] // ตรวจสอบว่า response.data มีค่าเป็น undefined หรือไม่
-        this.transformBookingsToEvents()
+        console.log('Response from API:', response.data)
+        this.bookingData = response.data || []
+        await this.transformBookingsToEvents()
       } catch (error) {
         console.error('Error fetching booking data:', error)
       }
@@ -95,71 +115,93 @@ export default {
         return
       }
 
+      // Create a Set to track unique keys
+      const uniqueKeys = new Set()
+
       this.calendarEvents = this.bookingData.map(booking => {
-        const eventDate = new Date(booking.dueDateDay) // Convert dueDateDay to Date object
+        const eventDate = new Date(booking.dueDateDay)
         if (isNaN(eventDate.getTime())) {
           console.error('Invalid date format:', booking.dueDateDay)
           return null
         }
+
+        // Create a unique key
+        const key = `${booking.id}-${eventDate.toISOString().slice(0, 10)}-${booking.timeText}`
+
+        // Check for uniqueness
+        if (uniqueKeys.has(key)) {
+          console.warn('Duplicate event key detected:', key)
+          return null // Skip this event if it's a duplicate
+        }
+        uniqueKeys.add(key)
+
         return {
           name: booking.memberName,
-          start: eventDate, // ใช้ Date object โดยตรง
+          start: eventDate,
           end: eventDate,
           time: booking.timeText,
           status: booking.statusBt,
           color: this.getStatusColor(booking.statusBt),
           timed: false,
-          id: `${booking.id}-${eventDate.toISOString().slice(0, 10)}`, // สร้าง unique ID
-          uniqueKey: `${booking.id}-${eventDate.toISOString().slice(0, 10)}`,
+          id: key,
+          uniqueKey: key,
           ...booking
         }
-      }).filter(event => event !== null) // กรอง null event ออก
+      }).filter(event => event !== null)
+    },
+    async showEvent (event) {
+      this.dataCalendar = []
+      this.selectedEvent = event.event.start
+      console.log('event', event.event)
+      console.log('type', this.type)
+
+      let url = ''
+      if (this.type === 'week') {
+        url = `${this.urlAPI}/booking_view/get?shopId=${this.userId}&DATE_FORMAT(dueDate,'%Y-%m-%d %H')=${moment(event.event.start).format('YYYY-MM-DD HH')}&statusBt=${event.event.statusBt}` // แก้ไขการใช้ backticks
+      } else {
+        url = `${this.urlAPI}/booking_view/get?shopId=${this.userId}&dueDate=${event.event.start} ${event.event.time}&statusBt=${event.event.statusBt}` // แก้ไขการใช้ backticks
+      }
+
+      console.log('url', url)
+      try {
+        const response = await axios.get(url)
+        console.log('getData', response.data)
+        for (let i = 0; i < response.data.length; i++) {
+          let d = response.data[i]
+          d.chkConfirm = d.statusUseBt === 'use' && d.statusBt === 'confirm'
+          d.chkCancel = d.statusUseBt === 'use' && d.statusBt === 'cancel'
+          d.color = d.statusBt === 'confirm' ? 'green' : d.statusBt === 'confirmJob' ? 'info' : 'red'
+          d.name = d.bookingDataCustomerName || ''
+          d.licenseNo = d.bookingDataCustomerRegisNumber || ''
+          d.tel = d.bookingDataCustomerTel || ''
+          d.carModel = d.bookingDataCustomerCarModel || ''
+          d.displayFlowName = d.displayFlowName || ''
+          this.dataCalendar.push(d)
+        }
+        this.dialog = true
+      } catch (error) {
+        console.error('Error fetching event data:', error)
+      }
     },
     getEventColor (event) {
       return event.color || 'blue'
     },
-    viewDayEvents ({ date }) {
-      const eventDate = new Date(date) // ตรวจสอบว่า date เป็น Date object หรือไม่
-      this.selectedEventDate = eventDate
-      this.selectedDateEvents = this.calendarEvents.filter(event =>
-        event.start instanceof Date && event.start.toISOString().slice(0, 10) === eventDate.toISOString().slice(0, 10)
-      )
-      this.eventDialog = this.selectedDateEvents.length > 0
-    },
-    formatDate (dateStr) {
-      if (!dateStr) return ''
-      return new Intl.DateTimeFormat('th-TH', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }).format(new Date(dateStr))
-    },
     getStatusColor (status) {
-      const statusColors = {
-        confirmJob: '#b0e370',
-        closeJob: '#d8d8d8',
-        confirm: '#b7e1fc',
-        cancel: '#ffb2b2'
+      switch (status) {
+        case 'confirm':
+          return 'green'
+        case 'confirmJob':
+          return 'info'
+        case 'cancel':
+          return 'red'
+        default:
+          return 'orange'
       }
-      return statusColors[status] || 'orange'
-    },
-    getTextColor (status) {
-      const statusTextColors = {
-        confirmJob: '#4b810f',
-        confirm: '#0085b2',
-        closeJob: '#808080',
-        cancel: '#ff0000'
-      }
-      return statusTextColors[status] || 'white'
     }
-  },
-  created () {
-    this.fetchMonthData()
   }
 }
 </script>
-
-  <style scoped>
+<style scoped>
   .calendar-wrapper {
     padding: 16px;
   }

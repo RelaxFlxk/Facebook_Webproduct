@@ -16,7 +16,7 @@
         </v-container>
       </v-overlay>
 
-    <v-app-bar  flat class="app-bar" dark>
+    <v-app-bar  flat  class="app-bar" dark>
       <v-toolbar-title class="text-button font-weight-bold">
         <span style="color: #FBBC05;">WAKIM</span><span>BOOKING</span>
       </v-toolbar-title>
@@ -112,21 +112,24 @@
               </v-data-table>
             </v-card>
 
-            <v-card outlined class="rounded-lg elevation-1  mt-4">
+            <!-- <v-card outlined class="rounded-lg elevation-1  mt-4">
               <v-card-title class="d-flex align-center">
                 <v-icon left color="#043873">mdi-calendar</v-icon>
                 <span class="subtitle-1 font-weight-medium" style="color: #043873;" > ปฏิทินการจองคิว </span>
               </v-card-title>
-              <BookingCalendar />
-            </v-card>
+            </v-card> -->
           </div>
         </v-fade-transition>
       </v-container>
     </v-main>
     <v-bottom-navigation v-model="activeTab" grow class="bottom-nav" app>
-      <v-btn v-for="item in bottomNavItems" :key="item.title" :value="item.value"
-             class="bottom-nav-btn"
-             @click="item.value === 'home' ? gotoHome() : item.value === 'booking' ? gotoBookingForm() : item.value === 'profile' ? goToProfile() : item.value === 'My_Rating' ? goToRating() : activeTab = item.value">
+      <v-btn
+        v-for="item in bottomNavItems"
+        :key="item.title"
+        :value="item.value"
+        class="bottom-nav-btn"
+        @click="item.value === 'home' ? gotoHome() : item.value === 'booking' ? gotoBookingForm() : item.value === 'profile' ? goToProfile() : item.value === 'My_Rating' ? goToRating() : activeTab = item.value"
+      >
         <span class="bottom-nav-title white--text mt-1">{{ item.title }}</span>
         <v-icon class="bottom-nav-icon">{{ item.icon }}</v-icon>
       </v-btn>
@@ -147,7 +150,7 @@ export default {
     return {
       userPhotoURL: 'https://via.placeholder.com/42',
       urlAPI: 'http://localhost:5005',
-      userId: 'U8b3fd01caa9faa45189b0567eb452041',
+      userId: 'U9bc765fb4c3dd68fed8c409009cb5f32',
       shopId: 'U63f4a14fe78b8bf8414c1d197e432954',
       isLoading: true,
       totalPrice: null,
@@ -260,7 +263,8 @@ export default {
     },
     gotoBookingForm () {
       const shopId = this.$route.query.shopId
-      this.$router.push({ path: '/BookingForm', query: { shopId: shopId } })
+      const bookinngUrl = `https://betask-linked.web.app/BookingFormNoLine?shopId=${shopId}`
+      window.location.href = bookinngUrl
     },
     getStatusColor (status) {
       switch (status) {
@@ -476,6 +480,7 @@ export default {
 .bottom-nav {
   background: linear-gradient(90deg, #043873 0%, #0765b0 100%) !important;
   color: #ffffff !important;
+
 }
 
 .bottom-nav-btn {
